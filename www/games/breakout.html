@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Game Breakout (Pecah Bata)</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #202124;
+            font-family: monospace;
+            color: white;
+            overflow: hidden;
+            touch-action: none; /* Mencegah layar scroll */
+        }
+        .ui-container {
+            display: flex;
+            justify-content: space-between;
+            width: 90%;
+            max-width: 360px;
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        canvas {
+            background-color: #1a1a1a;
+            border: 3px solid #535353;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            
+            height: 80vh; 
+            max-height: 640px; 
+            width: auto; 
+            aspect-ratio: 9 / 16; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ui-container">
+        <div id="score">Skor: 0</div>
+        <div id="lives">Nyawa: 3</div>
+    </div>
+    
+    <canvas id="gameCanvas" width="360" height="640"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const livesElement = document.getElementById('lives');
+
+        let score = 0;
+        let lives = 3;
+        let gameActive = false;
+        let gameWin = false;
+
+        // Pengaturan Paddle (Papan)
+        const paddle = {
+            width: 80,
+            height: 12,
+            x: (canvas.width - 80) / 2, // Posisi tengah
+            y: canvas.height - 30,
+            speed: 7
+        };
+
+        // Pengaturan Bola
+        const ball = {
+            x: canvas.width / 2,
+            y: paddle.y - 15,
+            radius: 6,
+            dx: 4, // Kecepatan horizontal
+            dy: -4 // Kecepatan vertikal (ke atas)
+        };
+
+        // Pengaturan Bata
+        const brickRowCount = 6;
+        const brickColumnCount = 6;
+        const brickWidth = 45;
+        const brickHeight = 20;
+        const brickPadding = 8;
+        const brickOffsetTop = 60;
+        const brickOffsetLeft = (canvas.width - (brickColumnCount * brickWidth + (brickColumnCount - 1) * brickPadding)) / 2;
+        
+        let bricks = [];
+        const colors = ['#F44336', '#E91E63', '#9C27B0', '#3F51B5', '#2196F3', '#4CAF50'];
+
+        function initBricks() {
+            bricks = [];
+            for (let c = 0; c < brickColumnCount; c++) {
+                bricks[c] = [];
+                for (let r = 0; r < brickRowCount; r++) {
+                    bricks[c][r] = { x: 0, y: 0, status: 1, color: colors[r] };
+                }
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            lives = 3;
+            gameActive = true;
+            gameWin = false;
+            scoreElement.innerText = "Skor: 0";
+            livesElement.innerText = "Nyawa: 3";
+            paddle.x = (canvas.width - paddle.width) / 2;
+            resetBall();
+            initBricks();
+            draw();
+        }
+
+        function resetBall() {
+            ball.x = paddle.x + paddle.width / 2;
+            ball.y = paddle.y - 15;
+            // Kecepatan acak sedikit agar tidak membosankan
+            ball.dx = (Math.random() * 4 + 2) * (Math.random() > 0.5 ? 1 : -1); 
+            ball.dy = -4;
+            gameActive = false; // Bola menunggu sampai pemain mengetuk layar
+            drawMessage("Ketuk untuk Mulai");
+        }
+
+        // Kontrol Layar Sentuh (Menggeser Paddle)
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!gameActive && !gameWin && lives > 0) return; // Jangan gerakkan paddle jika game belum mulai/game over
+
+            const rect = canvas.getBoundingClientRect();
+            // Konversi koordinat sentuhan layar ke koordinat canvas
+            const touchX = (e.touches[0].clientX - rect.left) * (canvas.width / rect.width);
+            
+            paddle.x = touchX - paddle.width / 2;
+
+            // Batasi paddle agar tidak keluar layar
+            if (paddle.x < 0) paddle.x = 0;
+            if (paddle.x + paddle.width > canvas.width) paddle.x = canvas.width - paddle.width;
+            
+            if (!gameActive && lives > 0 && !gameWin) {
+                gameActive = true; // Mulai game saat layar disentuh
+                ball.x = paddle.x + paddle.width / 2; // Bola ikut paddle sebelum dilempar
+                draw();
+            }
+        }, { passive: false });
+
+        // Kontrol Mouse (untuk PC)
+        canvas.addEventListener('mousemove', (e) => {
+            if (!gameActive && !gameWin && lives > 0) return;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+            
+            paddle.x = mouseX - paddle.width / 2;
+            if (paddle.x < 0) paddle.x = 0;
+            if (paddle.x + paddle.width > canvas.width) paddle.x = canvas.width - paddle.width;
+            
+            if (!gameActive && lives > 0 && !gameWin) {
+                gameActive = true;
+                ball.x = paddle.x + paddle.width / 2;
+                draw();
+            }
+        });
+
+        // Tap untuk melempar bola pertama kali
+        canvas.addEventListener('touchstart', (e) => {
+            if (!gameActive && lives > 0 && !gameWin) {
+                gameActive = true;
+                draw();
+            }
+        });
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = "#FFEB3B"; // Bola kuning
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawPaddle() {
+            ctx.beginPath();
+            ctx.rect(paddle.x, paddle.y, paddle.width, paddle.height);
+            ctx.fillStyle = "#4CAF50"; // Paddle hijau
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawBricks() {
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    if (bricks[c][r].status === 1) {
+                        let brickX = (c * (brickWidth + brickPadding)) + brickOffsetLeft;
+                        let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop;
+                        bricks[c][r].x = brickX;
+                        bricks[c][r].y = brickY;
+                        
+                        ctx.beginPath();
+                        ctx.rect(brickX, brickY, brickWidth, brickHeight);
+                        ctx.fillStyle = bricks[c][r].color;
+                        ctx.fill();
+                        ctx.closePath();
+                    }
+                }
+            }
+        }
+
+        function drawMessage(text) {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            ctx.font = "20px monospace";
+            ctx.textAlign = "center";
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+        }
+
+        // Deteksi Tabrakan Bola dengan Bata
+        function collisionDetection() {
+            let bricksLeft = 0;
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    let b = bricks[c][r];
+                    if (b.status === 1) {
+                        bricksLeft++;
+                        if (ball.x > b.x && ball.x < b.x + brickWidth && ball.y > b.y && ball.y < b.y + brickHeight) {
+                            ball.dy = -ball.dy;
+                            b.status = 0;
+                            score += 10;
+                            scoreElement.innerText = "Skor: " + score;
+                        }
+                    }
+                }
+            }
+            if (bricksLeft === 0) {
+                gameWin = true;
+                gameActive = false;
+                drawMessage("YOU WIN! Skor: " + score);
+                setTimeout(resetGame, 3000); // Reset setelah 3 detik
+            }
+        }
+
+        function draw() {
+            if (!gameActive && !gameWin && lives === 0) {
+                drawMessage("GAME OVER");
+                return;
+            }
+            if (!gameActive && !gameWin && lives > 0) {
+                 // Tampilkan pesan ketuk jika bola belum dilempar
+                 return; 
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBricks();
+            drawBall();
+            drawPaddle();
+            collisionDetection();
+
+            // Pantulan Dinding Kiri & Kanan
+            if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
+                ball.dx = -ball.dx;
+            }
+
+            // Pantulan Dinding Atas
+            if (ball.y + ball.dy < ball.radius) {
+                ball.dy = -ball.dy;
+            }
+            // Pantulan Bawah (Kehilangan Nyawa)
+            else if (ball.y + ball.dy > canvas.height - ball.radius) {
+                // Cek apakah kena paddle
+                if (ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
+                    // Kalkulasi sudut pantulan berdasarkan posisi bola di paddle
+                    let hitPos = ball.x - (paddle.x + paddle.width / 2);
+                    let normalizedHitPos = hitPos / (paddle.width / 2);
+                    let angle = normalizedHitPos * (Math.PI / 3); // Maksimal 60 derajat
+                    
+                    let speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+                    ball.dx = speed * Math.sin(angle);
+                    ball.dy = -speed * Math.cos(angle);
+                } else {
+                    // Bola jatuh ke bawah
+                    lives--;
+                    livesElement.innerText = "Nyawa: " + lives;
+                    if (lives === 0) {
+                        gameActive = false;
+                        drawMessage("GAME OVER");
+                        setTimeout(resetGame, 3000);
+                        return;
+                    } else {
+                        resetBall();
+                        return;
+                    }
+                }
+            }
+
+            // Update posisi bola
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            requestAnimationFrame(draw);
+        }
+
+        // Mulai game saat halaman dimuat
+        resetGame();
+        // Panggil draw secara manual agar pesan "Ketuk untuk Mulai" langsung muncul
+        drawMessage("Ketuk Layar / Geser");
+    </script>
+</body>
+</html>

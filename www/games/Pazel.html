@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Tangkap Warna</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #202124;
+            font-family: monospace;
+            color: white;
+            overflow: hidden;
+            touch-action: none;
+        }
+        .ui-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 360px;
+            font-size: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+        canvas {
+            background-color: #1a1a1a;
+            border: 3px solid #535353;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            
+            height: 80vh; 
+            max-height: 640px; 
+            width: auto; 
+            aspect-ratio: 9 / 16; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ui-container">
+        <div id="score">Skor: 0</div>
+        <div id="lives">Nyawa: 3</div>
+    </div>
+    
+    <canvas id="gameCanvas" width="360" height="640"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const livesElement = document.getElementById('lives');
+
+        // Daftar warna (Merah, Biru, Kuning, Hijau)
+        const colors = ['#F44336', '#2196F3', '#FFEB3B', '#4CAF50'];
+
+        let score = 0;
+        let lives = 3;
+        let gameActive = false;
+        let gameOver = false;
+
+        // Pemain (Wadah Penangkap)
+        const catcher = {
+            width: 80,
+            height: 20,
+            x: (canvas.width - 80) / 2,
+            y: canvas.height - 40,
+            color: colors[0] // Warna awal
+        };
+
+        // Kotak Jatuh
+        let fallingBlocks = [];
+        let spawnTimer = 0;
+        let gameSpeed = 2; // Kecepatan jatuh
+
+        function initGame() {
+            score = 0;
+            lives = 3;
+            gameActive = true;
+            gameOver = false;
+            fallingBlocks = [];
+            gameSpeed = 2;
+            spawnTimer = 0;
+            catcher.x = (canvas.width - catcher.width) / 2;
+            catcher.color = colors[Math.floor(Math.random() * colors.length)];
+            
+            updateUI();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateUI() {
+            scoreElement.innerText = "Skor: " + score;
+            livesElement.innerText = "Nyawa: " + lives;
+        }
+
+        // Fungsi Menggeser Wadah
+        function moveCatcher(clientX) {
+            if (!gameActive) return;
+            const rect = canvas.getBoundingClientRect();
+            const touchX = (clientX - rect.left) * (canvas.width / rect.width);
+            
+            catcher.x = touchX - catcher.width / 2;
+
+            // Batasi agar tidak keluar layar
+            if (catcher.x < 0) catcher.x = 0;
+            if (catcher.x + catcher.width > canvas.width) catcher.x = canvas.width - catcher.width;
+        }
+
+        // Kontrol Sentuh & Mouse
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            moveCatcher(e.touches[0].clientX);
+        }, { passive: false });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (e.buttons === 1) { // Hanya gerak jika klik kiri ditahan (PC)
+                moveCatcher(e.clientX);
+            }
+        });
+
+        // Mulai game saat diketuk (jika game over)
+        canvas.addEventListener('touchstart', (e) => {
+            if (gameOver) initGame();
+        });
+        canvas.addEventListener('mousedown', (e) => {
+            if (gameOver) initGame();
+        });
+
+        function spawnBlock() {
+            // Pilih warna acak
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            // Spawn di posisi X acak
+            const x = Math.random() * (canvas.width - 30);
+            
+            fallingBlocks.push({
+                x: x,
+                y: -30,
+                width: 30,
+                height: 30,
+                color: color
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Gambar Garis Tanah (Pemisah)
+            ctx.strokeStyle = "#444";
+            ctx.beginPath();
+            ctx.moveTo(0, catcher.y + catcher.height);
+            ctx.lineTo(canvas.width, catcher.y + catcher.height);
+            ctx.stroke();
+
+            // Gambar Kotak Jatuh
+            for (let block of fallingBlocks) {
+                ctx.fillStyle = block.color;
+                ctx.fillRect(block.x, block.y, block.width, block.height);
+                // Efek 3D tipis
+                ctx.fillStyle = "rgba(255,255,255,0.2)";
+                ctx.fillRect(block.x, block.y, block.width, 5);
+            }
+
+            // Gambar Wadah Penangkap
+            ctx.fillStyle = catcher.color;
+            ctx.fillRect(catcher.x, catcher.y, catcher.width, catcher.height);
+            // Garis tepi wadah
+            ctx.strokeStyle = "#fff";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(catcher.x, catcher.y, catcher.width, catcher.height);
+
+            if (gameOver) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "white";
+                ctx.font = "32px monospace";
+                ctx.textAlign = "center";
+                ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2 - 30);
+                ctx.font = "20px monospace";
+                ctx.fillText("Skor Akhir: " + score, canvas.width/2, canvas.height/2 + 10);
+                ctx.font = "16px monospace";
+                ctx.fillText("Ketuk untuk Main Lagi", canvas.width/2, canvas.height/2 + 50);
+            }
+        }
+
+        function update() {
+            if (!gameActive) return;
+
+            spawnTimer++;
+            // Munculkan kotak baru setiap 40 frame
+            if (spawnTimer > 40) {
+                spawnBlock();
+                spawnTimer = 0;
+            }
+
+            for (let i = fallingBlocks.length - 1; i >= 0; i--) {
+                let block = fallingBlocks[i];
+                block.y += gameSpeed;
+
+                // Deteksi Tabrakan dengan Wadah
+                if (
+                    block.y + block.height > catcher.y &&
+                    block.y < catcher.y + catcher.height &&
+                    block.x + block.width > catcher.x &&
+                    block.x < catcher.x + catcher.width
+                ) {
+                    if (block.color === catcher.color) {
+                        // Berhasil ditangkap
+                        score += 10;
+                        // Ganti warna wadah secara acak
+                        catcher.color = colors[Math.floor(Math.random() * colors.length)];
+                        // Tambah kecepatan sedikit
+                        if (gameSpeed < 8) gameSpeed += 0.1;
+                    } else {
+                        // Salah warna
+                        lives--;
+                        if (lives <= 0) {
+                            gameActive = false;
+                            gameOver = true;
+                        }
+                    }
+                    updateUI();
+                    fallingBlocks.splice(i, 1); // Hapus kotak
+                    continue;
+                }
+
+                // Hapus kotak jika jatuh melewati layar
+                if (block.y > canvas.height) {
+                    if (block.color === catcher.color) {
+                        // Jika kotak yang benar dibiarkan jatuh, nyawa berkurang
+                        lives--;
+                        if (lives <= 0) {
+                            gameActive = false;
+                            gameOver = true;
+                        }
+                        updateUI();
+                    }
+                    fallingBlocks.splice(i, 1);
+                }
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            if (gameActive) {
+                requestAnimationFrame(gameLoop);
+            } else {
+                draw(); // Tetap gambar layar Game Over
+            }
+        }
+
+        // Mulai game pertama kali
+        initGame();
+    </script>
+</body>
+</html>

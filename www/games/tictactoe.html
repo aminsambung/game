@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Tic Tac Toe vs Komputer</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #202124;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            overflow: hidden;
+            touch-action: none;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+            color: #4CAF50;
+        }
+        #status {
+            font-size: 18px;
+            margin-bottom: 20px;
+            height: 25px; /* Mencegah layout geser */
+            font-weight: bold;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 8px;
+            background-color: #535353;
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.6);
+        }
+        .cell {
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 60px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+        .cell:hover {
+            background-color: #3d3d3d;
+        }
+        /* Warna X dan O */
+        .cell.x { color: #4CAF50; } /* Hijau */
+        .cell.o { color: #F44336; } /* Merah */
+        
+        /* Efek saat menang */
+        .cell.win {
+            background-color: #555;
+            transform: scale(0.95);
+            transition: all 0.3s;
+        }
+
+        #resetBtn {
+            margin-top: 25px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: none; /* Disembunyikan sampai game over */
+        }
+        #resetBtn:active {
+            background-color: #388E3C;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Tic Tac Toe</h1>
+    <div id="status">Giliran Kamu (X)</div>
+    
+    <div class="board" id="board">
+        <!-- 9 Kotak akan dibuat oleh JavaScript -->
+    </div>
+
+    <button id="resetBtn">Main Lagi</button>
+
+    <script>
+        const boardElement = document.getElementById('board');
+        const statusElement = document.getElementById('status');
+        const resetBtn = document.getElementById('resetBtn');
+
+        let boardState = ['', '', '', '', '', '', '', '', ''];
+        let isPlayerTurn = true;
+        let gameActive = true;
+        
+        // Kombinasi kemenangan (indeks 0-8)
+        const winConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Baris
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Kolom
+            [0, 4, 8], [2, 4, 6]             // Diagonal
+        ];
+
+        function initGame() {
+            boardState = ['', '', '', '', '', '', '', '', ''];
+            isPlayerTurn = true;
+            gameActive = true;
+            statusElement.innerText = "Giliran Kamu (X)";
+            statusElement.style.color = "white";
+            resetBtn.style.display = "none";
+            boardElement.innerHTML = '';
+
+            // Buat 9 kotak
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.index = i;
+                cell.addEventListener('click', handleCellClick);
+                boardElement.appendChild(cell);
+            }
+        }
+
+        function handleCellClick(e) {
+            const index = e.target.dataset.index;
+
+            // Cegah klik jika bukan giliran pemain, kotak sudah diisi, atau game berakhir
+            if (!isPlayerTurn || boardState[index] !== '' || !gameActive) return;
+
+            // Pemain jalan (X)
+            makeMove(index, 'X');
+            
+            if (gameActive) {
+                isPlayerTurn = false;
+                statusElement.innerText = "Komputer sedang berpikir...";
+                
+                // Beri jeda sedikit agar terasa natural
+                setTimeout(computerTurn, 500); 
+            }
+        }
+
+        function makeMove(index, player) {
+            boardState[index] = player;
+            const cell = boardElement.children[index];
+            cell.innerText = player;
+            cell.classList.add(player.toLowerCase());
+            
+            checkResult();
+        }
+
+        function computerTurn() {
+            if (!gameActive) return;
+
+            // 1. Cek apakah komputer (O) bisa menang di langkah ini
+            let move = findBestMove('O');
+            
+            // 2. Jika tidak bisa menang, cek apakah pemain (X) mau menang, dan blokir!
+            if (move === null) {
+                move = findBestMove('X');
+            }
+
+            // 3. Jika tidak ada ancaman, pilih kotak kosong secara acak
+            if (move === null) {
+                let emptyCells = [];
+                for (let i = 0; i < 9; i++) {
+                    if (boardState[i] === '') emptyCells.push(i);
+                }
+                move = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            }
+
+            // Komputer jalan (O)
+            makeMove(move, 'O');
+
+            if (gameActive) {
+                isPlayerTurn = true;
+                statusElement.innerText = "Giliran Kamu (X)";
+                statusElement.style.color = "white";
+            }
+        }
+
+        // Fungsi AI Sederhana untuk mencari langkah menang/blokir
+        function findBestMove(player) {
+            for (let i = 0; i < 9; i++) {
+                if (boardState[i] === '') {
+                    // Coba isi kotak ini
+                    boardState[i] = player;
+                    
+                    // Cek apakah langkah ini membuat 'player' menang
+                    if (checkWin(boardState, player)) {
+                        boardState[i] = ''; // Batalkan simulasi
+                        return i;           // Kembalikan indeks yang membuat menang
+                    }
+                    
+                    // Batalkan simulasi jika tidak menang
+                    boardState[i] = ''; 
+                }
+            }
+            return null; // Tidak ada langkah menang
+        }
+
+        function checkWin(board, player) {
+            return winConditions.some(condition => {
+                return condition.every(index => board[index] === player);
+            });
+        }
+
+        function checkResult() {
+            let winner = null;
+            let winCombo = null;
+
+            // Cek X menang atau O menang
+            for (let i = 0; i < winConditions.length; i++) {
+                const [a, b, c] = winConditions[i];
+                if (boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c]) {
+                    winner = boardState[a];
+                    winCombo = winConditions[i];
+                    break;
+                }
+            }
+
+            if (winner) {
+                gameActive = false;
+                if (winner === 'X') {
+                    statusElement.innerText = "Kamu Menang! 🎉";
+                    statusElement.style.color = "#4CAF50";
+                } else {
+                    statusElement.innerText = "Komputer Menang! 🤖";
+                    statusElement.style.color = "#F44336";
+                }
+                highlightWinningCells(winCombo);
+                endGame();
+            } else if (!boardState.includes('')) {
+                // Jika tidak ada kotak kosong dan tidak ada pemenang
+                gameActive = false;
+                statusElement.innerText = "Seri! (Draw)";
+                statusElement.style.color = "#FFC107";
+                endGame();
+            }
+        }
+
+        function highlightWinningCells(combo) {
+            combo.forEach(index => {
+                boardElement.children[index].classList.add('win');
+            });
+        }
+
+        function endGame() {
+            resetBtn.style.display = "block";
+            // Hapus event listener klik agar tidak bisa di-klik lagi
+            for(let i=0; i<9; i++) {
+                boardElement.children[i].style.cursor = "default";
+            }
+        }
+
+        resetBtn.addEventListener('click', initGame);
+
+        // Mulai game saat halaman dimuat
+        initGame();
+    </script>
+</body>
+</html>

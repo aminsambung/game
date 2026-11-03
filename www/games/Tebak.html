@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Tebak Angka Rahasia</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #202124;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* Frame utama dibuat 9:16 */
+        .game-frame {
+            width: 100vw;
+            height: 100vh;
+            max-width: calc(100vh * 9 / 16); /* Menjaga rasio 9:16 */
+            max-height: calc(100vw * 16 / 9);
+            background-color: #2d2d2d;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Menyebar konten dari atas ke bawah */
+            align-items: center;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            position: relative;
+        }
+
+        /* Bagian Atas */
+        .header-section {
+            text-align: center;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        h1 {
+            color: #4CAF50;
+            font-size: 32px;
+            margin: 0 0 15px 0;
+        }
+
+        p {
+            font-size: 16px;
+            line-height: 1.5;
+            color: #bbb;
+            margin: 0;
+            padding: 0 10px;
+        }
+
+        /* Bagian Tengah (Input & Tombol) */
+        .input-section {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 30px;
+        }
+
+        input[type="number"] {
+            width: 80%;
+            padding: 20px;
+            font-size: 36px; /* Angka besar agar mudah dilihat */
+            text-align: center;
+            border: 3px solid #535353;
+            border-radius: 15px;
+            background-color: #1a1a1a;
+            color: white;
+            margin-bottom: 25px;
+            outline: none;
+            font-weight: bold;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        input[type="number"]:focus {
+            border-color: #4CAF50;
+        }
+        /* Menghilangkan panah atas/bawah pada input number */
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+
+        button {
+            width: 80%;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.2s;
+            box-sizing: border-box;
+        }
+        button:active {
+            background-color: #388E3C;
+            transform: scale(0.98);
+        }
+
+        /* Bagian Bawah (Pesan & Percobaan) */
+        .message-section {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 40px;
+            min-height: 100px; /* Mencegah layar lompat-lompatan saat teks muncul */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #message {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 0 10px;
+        }
+        
+        #attempts {
+            font-size: 18px;
+            color: #FFC107;
+            font-weight: bold;
+            background-color: #1a1a1a;
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Frame Utama 9:16 -->
+    <div class="game-frame">
+        
+        <!-- Atas: Judul -->
+        <div class="header-section">
+            <h1>🎯 Tebak Angka</h1>
+            <p>Saya memilih angka antara <b>1 - 100</b>.<br>Bisakah kamu menebaknya?</p>
+        </div>
+
+        <!-- Tengah: Input & Tombol -->
+        <div class="input-section">
+            <input type="number" id="guessInput" placeholder="..." min="1" max="100">
+            <button id="guessBtn">TEBAK!</button>
+            <button id="resetBtn" class="hidden" style="background-color: #2196F3; margin-top: 15px;">Main Lagi</button>
+        </div>
+
+        <!-- Bawah: Pesan Status -->
+        <div class="message-section">
+            <div id="message">Ayo mulai menebak!</div>
+            <div id="attempts" class="hidden">Percobaan ke-0</div>
+        </div>
+
+    </div>
+
+    <script>
+        let secretNumber;
+        let attempts;
+        let gameActive;
+
+        const guessInput = document.getElementById('guessInput');
+        const guessBtn = document.getElementById('guessBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const messageElement = document.getElementById('message');
+        const attemptsElement = document.getElementById('attempts');
+
+        function initGame() {
+            // Angka acak 1 - 100
+            secretNumber = Math.floor(Math.random() * 100) + 1;
+            attempts = 0;
+            gameActive = true;
+            
+            guessInput.value = '';
+            guessInput.disabled = false;
+            guessBtn.classList.remove('hidden');
+            resetBtn.classList.add('hidden');
+            
+            messageElement.innerText = "Ayo mulai menebak!";
+            messageElement.style.color = "white";
+            
+            attemptsElement.innerText = "Percobaan ke-0";
+            attemptsElement.classList.add('hidden');
+            
+            guessInput.focus();
+        }
+
+        function checkGuess() {
+            if (!gameActive) return;
+
+            let guess = parseInt(guessInput.value);
+
+            // Validasi input
+            if (isNaN(guess) || guess < 1 || guess > 100) {
+                messageElement.innerText = "Masukkan angka 1 - 100!";
+                messageElement.style.color = "#F44336"; // Merah
+                return;
+            }
+
+            attempts++;
+            attemptsElement.innerText = "Percobaan ke-" + attempts;
+            attemptsElement.classList.remove('hidden');
+
+            if (guess === secretNumber) {
+                // Menang
+                messageElement.innerHTML = `BENAR! 🎉<br>Angkanya adalah ${secretNumber}`;
+                messageElement.style.color = "#4CAF50"; // Hijau
+                gameActive = false;
+                
+                guessInput.disabled = true;
+                guessBtn.classList.add('hidden');
+                resetBtn.classList.remove('hidden');
+                
+            } else if (guess < secretNumber) {
+                // Terlalu kecil
+                messageElement.innerText = "Terlalu KECIL! ⬆️";
+                messageElement.style.color = "#2196F3"; // Biru
+            } else {
+                // Terlalu besar
+                messageElement.innerText = "Terlalu BESAR! ⬇️";
+                messageElement.style.color = "#FF9800"; // Oranye
+            }
+
+            // Bersihkan input
+            guessInput.value = '';
+            guessInput.focus();
+        }
+
+        // Event Listener Tombol
+        guessBtn.addEventListener('click', checkGuess);
+        resetBtn.addEventListener('click', initGame);
+
+        // Event Listener Enter (Keyboard PC)
+        guessInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                checkGuess();
+            }
+        });
+
+        // Mulai Game
+        initGame();
+    </script>
+</body>
+</html>
