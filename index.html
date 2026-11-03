@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kumpulan Game - Aminsambung</title>
+    <style>
+        /* Reset & Dasar */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #121212;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 30px 20px 20px;
+            background: linear-gradient(180deg, #1a1a1a 0%, #121212 100%);
+        }
+        h1 {
+            color: #4CAF50;
+            font-size: 26px;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        header p {
+            color: #888;
+            font-size: 14px;
+        }
+
+        /* Grid Menu Game */
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            flex-grow: 1; /* Mendorong footer ke bawah */
+        }
+
+        /* Kartu Game */
+        .game-card {
+            background-color: #2d2d2d;
+            border-radius: 12px;
+            padding: 15px 10px;
+            text-align: center;
+            text-decoration: none;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.1s, background-color 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 110px;
+            border: 1px solid #3d3d3d;
+        }
+        .game-card:active {
+            transform: scale(0.95);
+            background-color: #3d3d3d;
+        }
+        .icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+        .title {
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+
+        /* Footer / Tanda Tangan */
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            border-top: 1px solid #2d2d2d;
+            margin-top: auto;
+        }
+        footer span {
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🎮 Pilih Game</h1>
+        <p>Klik salah satu game untuk mulai bermain</p>
+    </header>
+
+    <div class="game-grid">
+        <!-- Pastikan nama file di href SESUAI dengan nama file di folder games/ -->
+        
+        <!-- 1. Game Mario -->
+        <a href="games/mario.html" class="game-card">
+            <div class="icon">🍄</div>
+            <div class="title">Super Mario</div>
+        </a>
+
+        <!-- 2. Game Ular -->
+        <a href="games/ular.html" class="game-card">
+            <div class="icon">🐍</div>
+            <div class="title">Ular Klasik</div>
+        </a>
+
+        <!-- 3. Game Tembak -->
+        <a href="games/tembak.html" class="game-card">
+            <div class="icon">🚀</div>
+            <div class="title">Space Shooter</div>
+        </a>
+
+        <!-- 4. Game Breakout -->
+        <a href="games/breakout.html" class="game-card">
+            <div class="icon">🧱</div>
+            <div class="title">Pecah Bata</div>
+        </a>
+
+        <!-- 5. Game Tebak Angka -->
+        <a href="games/tebakangka.html" class="game-card">
+            <div class="icon">🎯</div>
+            <div class="title">Tebak Angka</div>
+        </a>
+
+        <!-- 6. Game Tangkap Warna -->
+        <a href="games/warna.html" class="game-card">
+            <div class="icon">🎨</div>
+            <div class="title">Tangkap Warna</div>
+        </a>
+
+        <!-- 7. Game Memory Match -->
+        <a href="games/memory.html" class="game-card">
+            <div class="icon">🧠</div>
+            <div class="title">Memory Match</div>
+        </a>
+
+        <!-- 8. Game Tic Tac Toe -->
+        <a href="games/tictactoe.html" class="game-card">
+            <div class="icon">❌</div>
+            <div class="title">Tic Tac Toe</div>
+        </a>
+
+        <!-- 9. Game Flappy Bird -->
+        <a href="games/flappy.html" class="game-card">
+            <div class="icon">🐦</div>
+            <div class="title">Flappy Bird</div>
+        </a>
+
+        <!-- 10. Game Kucing Lompat -->
+        <a href="games/kucing.html" class="game-card">
+            <div class="icon">🐱</div>
+            <div class="title">Kucing Lompat</div>
+        </a>
+    </div>
+
+    <!-- Tanda Tangan -->
+    <footer>
+        Dibuat oleh <span>Aminsambung</span>
+    </footer>
+
+</body>
+</html>
