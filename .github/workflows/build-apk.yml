@@ -3,49 +3,56 @@ name: Build Android APK
 on:
   push:
     branches: [ "main", "master" ]
-  workflow_dispatch: # Memungkinkan build manual dari tab Actions
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
+    - name: 1. Checkout Repository
+      uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
+    - name: 2. Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
 
-    - name: Install Dependencies
+    - name: 3. Install Node Dependencies
       run: npm install
 
-    - name: Setup Java JDK
-      uses: actions/setup-java@v3
+    - name: 4. Setup Java JDK
+      uses: actions/setup-java@v4
       with:
         distribution: 'zulu'
         java-version: '17'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v2
+    - name: 5. Setup Android SDK (Fix 'tools' error)
+      uses: android-actions/setup-android@v4
+      with:
+        # Mengabaikan paket 'tools' yang sudah dihapus Google
+        packages: 'platform-tools' 
 
-    - name: Add Android Platform
+    - name: 6. Add Android Platform
       run: npx cap add android
 
-    - name: Sync Web Files to Android
+    - name: 7. Sync Web Files to Android
       run: npx cap sync android
 
-    - name: Grant Execute Permission for Gradlew
+    - name: 8. Grant Execute Permission for Gradlew
       run: chmod +x android/gradlew
 
-    - name: Build APK (Debug)
+    - name: 9. Build APK (Debug)
       run: |
         cd android
         ./gradlew assembleDebug
 
-    - name: Upload APK Artifact
+    - name: 10. Rename APK
+      run: |
+        mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/KumpulanGame-Aminsambung.apk
+
+    - name: 11. Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: KumpulanGame-APK
-        path: android/app/build/outputs/apk/debug/app-debug.apk
+        path: android/app/build/outputs/apk/debug/KumpulanGame-Aminsambung.apk
