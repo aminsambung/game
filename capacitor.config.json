@@ -1,0 +1,9 @@
+{
+  "appId": "com.aminsambung.games",
+  "appName": "Kumpulan Game",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}
