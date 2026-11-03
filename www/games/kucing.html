@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Kucing Lompat</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f7f7f7;
+            font-family: monospace;
+            overflow: hidden;
+        }
+        canvas {
+            background-color: #fff;
+            border-bottom: 2px solid #535353;
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas" width="600" height="200"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Karakter Kucing
+        const cat = {
+            x: 50,
+            y: 140, 
+            width: 40,
+            height: 40,
+            vy: 0,
+            gravity: 0.6,
+            jumpForce: -10,
+            isJumping: false,
+            color: '#535353' 
+        };
+
+        // Rintangan (Tanaman)
+        let obstacles = [];
+        let obstacleSpeed = 5;
+        let spawnTimer = 0;
+        let spawnInterval = 150; // Diperbesar agar rintangan pertama tidak langsung muncul
+
+        // Skor
+        let score = 0;
+        let gameOver = false;
+        let frameCount = 0;
+
+        // Kontrol Keyboard
+        document.addEventListener('keydown', (e) => {
+            if ((e.code === 'Space' || e.code === 'ArrowUp') && !cat.isJumping && !gameOver) {
+                cat.vy = cat.jumpForce;
+                cat.isJumping = true;
+            }
+            if (e.code === 'Space' && gameOver) {
+                resetGame();
+            }
+        });
+
+        // Kontrol Layar Sentuh (untuk HP)
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!cat.isJumping && !gameOver) {
+                cat.vy = cat.jumpForce;
+                cat.isJumping = true;
+            } else if (gameOver) {
+                resetGame();
+            }
+        });
+
+        function resetGame() {
+            obstacles = [];
+            score = 0;
+            gameOver = false;
+            cat.y = 140;
+            cat.vy = 0;
+            spawnTimer = 0;
+            obstacleSpeed = 5;
+            frameCount = 0;
+            spawnInterval = 150; // Reset jarak spawn
+        }
+
+        // Fungsi untuk menggambar Kucing (Diperbaiki)
+        function drawCat() {
+            ctx.fillStyle = cat.color;
+            
+            // Badan Kucing
+            ctx.fillRect(cat.x + 5, cat.y + 15, 25, 18);
+            
+            // Kepala
+            ctx.fillRect(cat.x + 20, cat.y + 2, 20, 15);
+            
+            // Telinga Kiri
+            ctx.beginPath();
+            ctx.moveTo(cat.x + 20, cat.y + 2);
+            ctx.lineTo(cat.x + 22, cat.y - 8);
+            ctx.lineTo(cat.x + 28, cat.y + 2);
+            ctx.fill();
+
+            // Telinga Kanan
+            ctx.beginPath();
+            ctx.moveTo(cat.x + 32, cat.y + 2);
+            ctx.lineTo(cat.x + 36, cat.y - 8);
+            ctx.lineTo(cat.x + 40, cat.y + 2);
+            ctx.fill();
+
+            // Ekor Melengkung ke atas
+            ctx.beginPath();
+            ctx.moveTo(cat.x + 5, cat.y + 25);
+            ctx.quadraticCurveTo(cat.x - 10, cat.y + 20, cat.x - 5, cat.y + 5);
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = cat.color;
+            ctx.stroke();
+
+            // Kaki Belakang
+            ctx.fillRect(cat.x + 8, cat.y + 33, 7, 7);
+            // Kaki Depan
+            ctx.fillRect(cat.x + 22, cat.y + 33, 7, 7);
+
+            // Detail Mata (Putih dan Hitam)
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(cat.x + 30, cat.y + 5, 5, 5);
+            ctx.fillStyle = "#000";
+            ctx.fillRect(cat.x + 32, cat.y + 6, 2, 3);
+        }
+
+        // Fungsi menggambar rintangan
+        function drawObstacle(obs) {
+            ctx.fillStyle = cat.color;
+            // Batang tanaman
+            ctx.fillRect(obs.x + 8, obs.y, 4, obs.height);
+            // Daun
+            ctx.fillRect(obs.x, obs.y + 10, 10, 8);
+            ctx.fillRect(obs.x + 10, obs.y + 5, 10, 8);
+        }
+
+        function update() {
+            if (gameOver) return;
+
+            // Fisika Lompatan
+            cat.y += cat.vy;
+            cat.vy += cat.gravity;
+
+            // Cegah Kucing masuk tanah
+            if (cat.y > 140) {
+                cat.y = 140;
+                cat.vy = 0;
+                cat.isJumping = false;
+            }
+
+            // Spawn Rintangan
+            spawnTimer++;
+            if (spawnTimer >= spawnInterval) {
+                obstacles.push({
+                    x: canvas.width,
+                    y: 160,
+                    width: 20,
+                    height: 30
+                });
+                spawnTimer = 0;
+                // Jarak antar rintangan diacak
+                spawnInterval = Math.floor(Math.random() * 50) + 100; 
+            }
+
+            // Update Rintangan & Deteksi Tabrakan
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= obstacleSpeed;
+
+                // Hitbox tabrakan yang lebih akurat
+                if (
+                    cat.x + 10 < obstacles[i].x + obstacles[i].width &&
+                    cat.x + 40 > obstacles[i].x &&
+                    cat.y + 10 < obstacles[i].y + obstacles[i].height &&
+                    cat.y + cat.height > obstacles[i].y
+                ) {
+                    gameOver = true;
+                }
+
+                // Hapus rintangan yang sudah lewat
+                if (obstacles[i].x + obstacles[i].width < 0) {
+                    obstacles.splice(i, 1);
+                    score += 10;
+                }
+            }
+
+            // Tambah kecepatan perlahan
+            frameCount++;
+            if (frameCount % 500 === 0) {
+                obstacleSpeed += 0.5;
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawCat();
+
+            for (let obs of obstacles) {
+                drawObstacle(obs);
+            }
+
+            // Gambar Skor
+            ctx.fillStyle = "#535353";
+            ctx.font = "16px monospace";
+            ctx.fillText("Skor: " + score, canvas.width - 100, 30);
+
+            // Jika Game Over
+            if (gameOver) {
+                ctx.fillStyle = "#535353";
+                ctx.font = "20px monospace";
+                ctx.textAlign = "center";
+                ctx.fillText("GAME OVER", canvas.width / 2, 80);
+                ctx.font = "14px monospace";
+                ctx.fillText("Ketuk Layar untuk Main Lagi", canvas.width / 2, 110);
+                ctx.textAlign = "left";
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
